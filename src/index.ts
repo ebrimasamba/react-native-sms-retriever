@@ -8,7 +8,7 @@ let NativeSMSRetriever: any = null;
 
 if (Platform.OS === 'android') {
   try {
-    const module = require('./NativeSMSRetriever');
+    const module = require('./NativeSmsRetriever');
     NativeSMSRetriever = module.default;
   } catch (error) {
     console.warn('Failed to load SMS Retriever module:', error);

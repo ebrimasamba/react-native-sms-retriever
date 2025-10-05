@@ -1,6 +1,6 @@
 {
   "name": "@ebrimasamba/react-native-sms-retriever",
-  "version": "1.0.2-beta.6",
+  "version": "2.0.0",
   "description": "A react native android sms retriever api library for the new architecture",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",

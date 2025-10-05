@@ -5,15 +5,20 @@ A React Native library for Android SMS Retriever API with support for the new ar
 [![npm version](https://badge.fury.io/js/%40ebrimasamba%2Freact-native-sms-retriever.svg)](https://badge.fury.io/js/%40ebrimasamba%2Freact-native-sms-retriever)
 [![npm downloads](https://img.shields.io/npm/dm/@ebrimasamba/react-native-sms-retriever.svg)](https://www.npmjs.com/package/@ebrimasamba/react-native-sms-retriever)
 
+> **Current Version:** 2.0.0
+
 ## Features
 
 - ✅ **Android SMS Retriever API** - Automatically retrieve SMS messages
-- ✅ **New Architecture Support** - Built with TurboModules
+- ✅ **New Architecture Support** - Built with TurboModules (React Native 0.68+)
 - ✅ **TypeScript Support** - Full TypeScript definitions included
-- ✅ **React Hook** - Easy-to-use `useSMSRetriever` hook
+- ✅ **React Hook** - Easy-to-use `useSMSRetriever` hook with automatic state management
+- ✅ **Expo Compatible** - Works with Expo managed workflow and development builds
 - ✅ **Android-Only** - Optimized specifically for Android SMS Retriever API
 - ✅ **No Permissions Required** - Uses Google Play Services SMS Retriever API
 - ✅ **Automatic OTP Extraction** - Smart pattern matching for OTP codes
+- ✅ **Error Handling** - Comprehensive error handling with retry logic
+- ✅ **Event-Driven** - Real-time SMS detection with event listeners
 
 ## Installation
 
@@ -23,76 +28,153 @@ npm install @ebrimasamba/react-native-sms-retriever
 yarn add @ebrimasamba/react-native-sms-retriever
 ```
 
-### Android Setup
+### React Native Setup
 
-The library uses autolinking, so no additional setup is required for React Native 0.76+.
+The library uses autolinking, so no additional setup is required for React Native 0.68+.
+
+### Expo Setup
+
+This library is compatible with Expo! It works out of the box in:
+
+- **Expo Development Builds** - Full functionality
+- **Expo Go** - Limited functionality (requires custom development client for full features)
+
+For Expo projects, simply install the library and it will work automatically:
+
+```sh
+npx expo install @ebrimasamba/react-native-sms-retriever
+```
 
 ## Usage
 
 ### Using the Hook (Recommended)
 
 ```tsx
-import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { Text, View, ScrollView, SafeAreaView, StyleSheet } from 'react-native';
 import { useSMSRetriever } from '@ebrimasamba/react-native-sms-retriever';
 
 export default function App() {
-  const {
-    appHash,
-    smsCode,
-    isLoading,
-    isListening,
-    error,
-    isReady,
-    clearError,
-  } = useSMSRetriever({
-    timeoutMs: 30000, // 30 seconds
-    onSuccess: (otp) => {
-      Alert.alert('Success', `OTP received: ${otp}`);
-    },
-    onError: (error) => {
-      Alert.alert('Error', `${error.type}: ${error.message}`);
-    },
-  });
+  const { appHash, smsCode } = useSMSRetriever();
 
   return (
-    <View style={{ flex: 1, padding: 20 }}>
-      <Text>App Hash: {appHash}</Text>
-      <Text>Status: {isListening ? 'Listening...' : 'Ready'}</Text>
-      {smsCode && <Text>OTP: {smsCode}</Text>}
-      {error && <Text style={{ color: 'red' }}>Error: {error}</Text>}
-    </View>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text style={styles.title}>SMS Retriever</Text>
+          <Text style={styles.subtitle}>
+            Monitor SMS messages automatically
+          </Text>
+        </View>
+
+        <View style={styles.content}>
+          <View style={styles.infoCard}>
+            <Text style={styles.label}>App Hash</Text>
+            <Text style={styles.value}>{appHash || 'Loading...'}</Text>
+          </View>
+
+          <View style={styles.infoCard}>
+            <Text style={styles.label}>SMS Code</Text>
+            <Text style={styles.value}>{smsCode || 'No SMS received yet'}</Text>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 20,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+    paddingTop: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  content: {
+    gap: 16,
+  },
+  infoCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748b',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  value: {
+    fontSize: 16,
+    color: '#1e293b',
+    fontFamily: 'monospace',
+    backgroundColor: '#f1f5f9',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+});
 ```
 
 ### Using the Native Module Directly
 
 ```tsx
-import NativeSMSRetriever from '@ebrimasamba/react-native-sms-retriever';
+import { NativeSMSRetriever } from '@ebrimasamba/react-native-sms-retriever';
 
 // Get app hash for SMS message
 const appHash = await NativeSMSRetriever.getAppHash();
 console.log('App Hash:', appHash);
 
-// Start listening for SMS
-try {
-  const otp = await NativeSMSRetriever.startSMSListenerWithPromise(30000);
-  console.log('OTP received:', otp);
-} catch (error) {
-  console.error('SMS retrieval failed:', error);
-}
+// Start listening for SMS (fire-and-forget)
+NativeSMSRetriever.startSMSListener();
 
 // Stop listening
 NativeSMSRetriever.stopSMSListener();
 
+// Get current status
+const status = await NativeSMSRetriever.getStatus();
+console.log('Status:', status);
+
 // Listen for events
-const subscription = NativeSMSRetriever.onSMSRetrieved((otp) => {
+const smsSubscription = NativeSMSRetriever.onSMSRetrieved((otp) => {
   console.log('OTP received via event:', otp);
 });
 
+const errorSubscription = NativeSMSRetriever.onSMSError((error) => {
+  console.error('SMS Error:', error);
+});
+
 // Clean up
-subscription.remove();
+smsSubscription.remove();
+errorSubscription.remove();
 ```
 
 ## SMS Message Format
@@ -101,7 +183,6 @@ To use the SMS Retriever API, your SMS message must:
 
 1. **Contain the app hash** at the end of the message
 2. **Be sent from a phone number** (not an email or other service)
-3. **Be received within the timeout period** (default: 30 seconds)
 
 Example SMS format:
 
@@ -117,12 +198,12 @@ Where `FA+9qCX9VSu` is your app hash (obtained from `getAppHash()`).
 
 #### Options
 
-- `timeoutMs?: number` - Timeout in milliseconds (default: 30000)
-- `autoStart?: boolean` - Automatically start listening on mount (default: true)
-- `onSuccess?: (otp: string) => void` - Success callback
-- `onError?: (error: SMSError) => void` - Error callback
+- `onSuccess?: (otp: string) => void` - Success callback when OTP is received
+- `onError?: (error: SMSError) => void` - Error callback when SMS retrieval fails
 
 #### Return Value
+
+**State Properties:**
 
 - `appHash: string` - Your app's hash for SMS messages
 - `smsCode: string` - The extracted OTP code
@@ -130,23 +211,53 @@ Where `FA+9qCX9VSu` is your app hash (obtained from `getAppHash()`).
 - `isListening: boolean` - Whether currently listening for SMS
 - `error: string | null` - Current error message
 - `status: SMSStatus | null` - Current status object
+
+**Action Methods:**
+
+- `startListening: () => Promise<void>` - Start listening for SMS
+- `stopListening: () => void` - Stop listening for SMS
+- `reset: () => void` - Reset all state and stop listening
+
+**Utility Properties:**
+
 - `isReady: boolean` - Whether the module is ready to use
 - `hasError: boolean` - Whether there's an error
-- `startListening: () => Promise<string>` - Start listening for SMS
-- `stopListening: () => void` - Stop listening
-- `refreshStatus: () => Promise<void>` - Refresh status
-- `clearError: () => void` - Clear current error
-- `reset: () => void` - Reset all state
 
 ### Native Module Methods
 
 - `getAppHash(): Promise<string>` - Get the app hash for SMS messages
-- `startSMSListener(): void` - Start listening (fire-and-forget)
-- `startSMSListenerWithPromise(timeoutMs?: number): Promise<string>` - Start listening with promise
-- `stopSMSListener(): void` - Stop listening
-- `getStatus(): Promise<SMSStatus>` - Get current status
+- `startSMSListener(): void` - Start listening for SMS (fire-and-forget)
+- `stopSMSListener(): void` - Stop listening for SMS
+- `getStatus(): Promise<SMSStatus>` - Get current status information
 - `onSMSRetrieved: EventEmitter<string>` - Listen for successful SMS retrieval
-- `onSMSError: EventEmitter<SMSError>` - Listen for errors
+- `onSMSError: EventEmitter<SMSError>` - Listen for SMS retrieval errors
+
+### Types
+
+#### SMSError
+
+```typescript
+interface SMSError {
+  type:
+    | 'TIMEOUT'
+    | 'PERMISSION_DENIED'
+    | 'SERVICE_UNAVAILABLE'
+    | 'INVALID_SMS_FORMAT'
+    | 'UNKNOWN_ERROR';
+  message: string;
+  retryCount: number;
+}
+```
+
+#### SMSStatus
+
+```typescript
+interface SMSStatus {
+  isListening: boolean;
+  isRegistered: boolean;
+  retryCount: number;
+}
+```
 
 ## Platform Support
 
@@ -155,9 +266,10 @@ Where `FA+9qCX9VSu` is your app hash (obtained from `getAppHash()`).
 
 ## Requirements
 
-- React Native 0.76+ (New Arch)
-- Android API level 19+
+- React Native 0.68+ (New Architecture with TurboModules)
+- Android API level 19+ (Android 4.4+)
 - Google Play Services (for SMS Retriever API)
+- Expo SDK 48+ (for Expo compatibility)
 
 ## Troubleshooting
 
@@ -166,7 +278,7 @@ Where `FA+9qCX9VSu` is your app hash (obtained from `getAppHash()`).
 1. **SMS not detected**: Ensure your SMS contains the app hash at the end
 2. **Timeout errors**: Increase the timeout or check if Google Play Services is available
 3. **Permission errors**: SMS Retriever API doesn't require SMS permissions
-4. **Build errors**: Make sure you're using React Native 0.60+ with autolinking
+4. **Build errors**: Make sure you're using React Native 0.68+ with autolinking
 
 ### Debug Tips
 

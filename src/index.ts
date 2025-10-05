@@ -16,8 +16,6 @@ if (Platform.OS === 'android') {
 }
 
 export interface UseSMSRetrieverOptions {
-  timeoutMs?: number;
-  autoStart?: boolean;
   onSuccess?: (otp: string) => void;
   onError?: (error: SMSError) => void;
 }
@@ -66,38 +64,6 @@ export const useSMSRetriever = (
   // Platform check - SMS Retriever is Android-only
   const isAndroid = Platform.OS === 'android';
 
-  // Initialize the SMS Retriever
-  const initialize = useCallback(async () => {
-    if (isInitialized.current) return;
-
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Check if running on Android and module is available
-      if (!isAndroid || !NativeSMSRetriever) {
-        setError('SMS Retriever is only supported on Android');
-        setIsLoading(false);
-        isInitialized.current = true;
-        return;
-      }
-
-      // Get app hash
-      const hash = await NativeSMSRetriever.getAppHash();
-      setAppHash(hash);
-
-      // Get initial status
-      const currentStatus = await NativeSMSRetriever.getStatus();
-      setStatus(currentStatus);
-    } catch (initError) {
-      console.error('Failed to initialize SMS Retriever:', initError);
-      setError(`Initialization failed: ${initError}`);
-    } finally {
-      setIsLoading(false);
-      isInitialized.current = true;
-    }
-  }, [isAndroid]);
-
   // Start SMS listening
   const startListening = useCallback(async (): Promise<void> => {
     try {
@@ -131,6 +97,38 @@ export const useSMSRetriever = (
     }
   }, [isAndroid]);
 
+  // Initialize the SMS Retriever
+  const initialize = useCallback(async () => {
+    if (isInitialized.current) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Check if running on Android and module is available
+      if (!isAndroid || !NativeSMSRetriever) {
+        setError('SMS Retriever is only supported on Android');
+        setIsLoading(false);
+        isInitialized.current = true;
+        return;
+      }
+
+      // Get app hash
+      const hash = await NativeSMSRetriever.getAppHash();
+      setAppHash(hash);
+
+      // Get initial status
+      const currentStatus = await NativeSMSRetriever.getStatus();
+      setStatus(currentStatus);
+    } catch (initError) {
+      console.error('Failed to initialize SMS Retriever:', initError);
+      setError(`Initialization failed: ${initError}`);
+    } finally {
+      setIsLoading(false);
+      isInitialized.current = true;
+    }
+  }, [isAndroid]);
+
   // Reset all state
   const reset = useCallback(() => {
     setSmsCode('');
@@ -146,6 +144,7 @@ export const useSMSRetriever = (
     // Listen for successful SMS retrieval
     smsSubscription.current = NativeSMSRetriever.onSMSRetrieved(
       (otp: string) => {
+        console.log('OTP received:', otp);
         setSmsCode(otp);
         setIsListening(false);
         setError(null);
@@ -168,23 +167,23 @@ export const useSMSRetriever = (
       smsSubscription.current?.remove();
       errorSubscription.current?.remove();
     };
-  }, [onSuccess, onError, isAndroid]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onSuccess, onError, isAndroid, isInitialized.current]);
 
   // Initialize on mount
   useEffect(() => {
     initialize();
+  }, [initialize, stopListening]);
 
+  useEffect(() => {
+    if (isInitialized.current && !isListening && !error) {
+      startListening().catch(console.error);
+    }
     return () => {
       stopListening();
     };
-  }, [initialize, stopListening]);
-
-  // Auto-start if enabled
-  // useEffect(() => {
-  //   if (autoStart && isInitialized.current && !isListening && !error) {
-  //     startListening().catch(console.error);
-  //   }
-  // }, [autoStart, isListening, error, startListening]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInitialized.current]);
 
   // Computed values
   const isReady = isInitialized.current && !isLoading && !error;
@@ -212,5 +211,6 @@ export const useSMSRetriever = (
 
 export default useSMSRetriever;
 
+export { NativeSMSRetriever };
 // Export types for external use
 export type { SMSError, SMSStatus } from './types';

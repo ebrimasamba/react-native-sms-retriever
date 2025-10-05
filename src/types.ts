@@ -14,3 +14,12 @@ export interface SMSStatus {
   isRegistered: boolean;
   retryCount: number;
 }
+
+export type NativeSMSRetrieverType = {
+  startSMSListener: () => void;
+  onSMSRetrieved: (otp: string) => void;
+  onSMSError: (error: SMSError) => void;
+  stopSMSListener: () => void;
+  getAppHash: () => Promise<string>;
+  getStatus: () => Promise<SMSStatus>;
+};

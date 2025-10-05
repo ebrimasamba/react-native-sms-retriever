@@ -1,259 +1,92 @@
-import { useState } from 'react';
-import {
-  Text,
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  Platform,
-} from 'react-native';
+import { Text, View, ScrollView, SafeAreaView, StyleSheet } from 'react-native';
 import { useSMSRetriever } from '../../src/index';
 
 export default function App() {
-  const [, setOtp] = useState<string>('');
-  const {
-    appHash,
-    smsCode,
-    isLoading,
-    isListening,
-    error,
-    isReady,
-    startListening,
-    stopListening,
-    reset,
-  } = useSMSRetriever({
-    timeoutMs: 30000,
-    onSuccess: (code: string) => {
-      setOtp(code);
-      Alert.alert('Success', `OTP received: ${code}`);
-    },
-    onError: (err: any) => {
-      Alert.alert('Error', `${err.type}: ${err.message}`);
-    },
-  });
-
-  const handleStartListening = async () => {
-    try {
-      setOtp('');
-      await startListening();
-    } catch (err) {
-      Alert.alert('Error', `Failed to start listening: ${err}`);
-    }
-  };
-
-  const handleStopListening = () => {
-    stopListening();
-  };
-
-  const handleReset = () => {
-    reset();
-    setOtp('');
-  };
-
-  if (Platform.OS === 'ios') {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>SMS Retriever Example</Text>
-        <Text style={styles.warning}>
-          SMS Retriever is only supported on Android. Please run this example on
-          an Android device or emulator.
-        </Text>
-      </View>
-    );
-  }
+  const { appHash, smsCode } = useSMSRetriever();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>SMS Retriever Example</Text>
-
-      <View style={styles.section}>
-        <Text style={styles.label}>App Hash:</Text>
-        <Text style={styles.value}>{appHash || 'Loading...'}</Text>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.label}>Status:</Text>
-        <Text style={styles.value}>
-          {isLoading
-            ? 'Loading...'
-            : isListening
-              ? 'Listening for SMS...'
-              : 'Ready'}
-        </Text>
-      </View>
-
-      {error && (
-        <View style={styles.section}>
-          <Text style={styles.errorLabel}>Error:</Text>
-          <Text style={styles.errorValue}>{error}</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text style={styles.title}>SMS Retriever</Text>
+          <Text style={styles.subtitle}>
+            Monitor SMS messages automatically
+          </Text>
         </View>
-      )}
 
-      {smsCode && (
-        <View style={styles.section}>
-          <Text style={styles.label}>Received OTP:</Text>
-          <Text style={styles.otpValue}>{smsCode}</Text>
+        <View style={styles.content}>
+          <View style={styles.infoCard}>
+            <Text style={styles.label}>App Hash</Text>
+            <Text style={styles.value}>{appHash || 'Loading...'}</Text>
+          </View>
+
+          <View style={styles.infoCard}>
+            <Text style={styles.label}>SMS Code</Text>
+            <Text style={styles.value}>{smsCode || 'No SMS received yet'}</Text>
+          </View>
         </View>
-      )}
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            styles.startButton,
-            (!isReady || isListening) && styles.disabledButton,
-          ]}
-          onPress={handleStartListening}
-          disabled={!isReady || isListening}
-        >
-          <Text style={styles.buttonText}>Start Listening</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.button,
-            styles.stopButton,
-            !isListening && styles.disabledButton,
-          ]}
-          onPress={handleStopListening}
-          disabled={!isListening}
-        >
-          <Text style={styles.buttonText}>Stop Listening</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.resetButton]}
-          onPress={handleReset}
-        >
-          <Text style={styles.buttonText}>Reset</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.instructions}>
-        <Text style={styles.instructionsTitle}>Instructions:</Text>
-        <Text style={styles.instructionsText}>
-          1. Make sure your app is signed with the debug keystore{'\n'}
-          2. Use the app hash above in your SMS message{'\n'}
-          3. Send an SMS with the format: "Your OTP is 123456 FA+9qCX9VSu"
-          (replace with your app hash){'\n'}
-          4. The OTP will be automatically extracted and displayed
-        </Text>
-      </View>
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  scrollContent: {
+    flexGrow: 1,
     padding: 20,
-    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+    paddingTop: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 30,
-    color: '#333',
+    color: '#1e293b',
+    marginBottom: 8,
   },
-  warning: {
+  subtitle: {
     fontSize: 16,
+    color: '#64748b',
     textAlign: 'center',
-    color: '#ff6b6b',
-    padding: 20,
-    backgroundColor: '#ffe0e0',
-    borderRadius: 8,
-    marginTop: 20,
   },
-  section: {
-    marginBottom: 20,
-    padding: 15,
+  content: {
+    gap: 16,
+  },
+  infoCard: {
     backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 12,
+    padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 5,
+    color: '#64748b',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   value: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 16,
+    color: '#1e293b',
     fontFamily: 'monospace',
-  },
-  errorLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ff6b6b',
-    marginBottom: 5,
-  },
-  errorValue: {
-    fontSize: 14,
-    color: '#ff6b6b',
-  },
-  otpValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    textAlign: 'center',
-    letterSpacing: 2,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 30,
-    flexWrap: 'wrap',
-  },
-  button: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    backgroundColor: '#f1f5f9',
+    padding: 12,
     borderRadius: 8,
-    marginBottom: 10,
-    minWidth: 100,
-  },
-  startButton: {
-    backgroundColor: '#4CAF50',
-  },
-  stopButton: {
-    backgroundColor: '#ff6b6b',
-  },
-  resetButton: {
-    backgroundColor: '#2196F3',
-  },
-  disabledButton: {
-    backgroundColor: '#ccc',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  instructions: {
-    padding: 15,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  instructionsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 10,
-  },
-  instructionsText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
 });

@@ -39,15 +39,10 @@ class SMSRetrieverModule(reactContext: ReactApplicationContext) : NativeSmsRetri
 
     companion object {
         private const val TAG = "SMSRetrieverModule"
-        private const val DEFAULT_TIMEOUT_MS = 30000L // 30 seconds
-        private const val MAX_RETRY_ATTEMPTS = 3
     }
 
     private var isRegistered: Boolean = false
     private var isListening: Boolean = false
-    private var timeoutHandler: Handler? = null
-    private var timeoutRunnable: Runnable? = null
-    private var retryCount: Int = 0
     private var currentPromise: Promise? = null
 
     private val smsBroadcastReceiver = object : BroadcastReceiver() {
@@ -148,9 +143,7 @@ class SMSRetrieverModule(reactContext: ReactApplicationContext) : NativeSmsRetri
 
         val errorMap = Arguments.createMap().apply {
             putString("type", errorType.name)
-            putString("message", message)
-            putInt("retryCount", retryCount)
-        }
+            putString("message", message) }
 
         emitOnSMSError(errorMap as com.facebook.react.bridge.ReadableMap)
         currentPromise?.reject(errorType.name, message)
@@ -159,22 +152,8 @@ class SMSRetrieverModule(reactContext: ReactApplicationContext) : NativeSmsRetri
 
     private fun cleanup() {
         isListening = false
-        timeoutRunnable?.let { runnable: Runnable ->
-            timeoutHandler?.removeCallbacks(runnable)
-        }
-        timeoutRunnable = null
     }
 
-    private fun setupTimeout(timeoutMs: Long = DEFAULT_TIMEOUT_MS) {
-        timeoutHandler = Handler(Looper.getMainLooper())
-        timeoutRunnable = Runnable {
-            Log.w(TAG, "SMS retrieval timeout after ${timeoutMs}ms")
-            handleError(SMSErrorType.TIMEOUT, "SMS retrieval timeout")
-        }
-        timeoutRunnable?.let { runnable: Runnable ->
-            timeoutHandler?.postDelayed(runnable, timeoutMs)
-        }
-    }
 
     override fun startSMSListener() {
         if (isListening) {
@@ -192,7 +171,6 @@ class SMSRetrieverModule(reactContext: ReactApplicationContext) : NativeSmsRetri
                 Log.d(TAG, "SMS Retriever started successfully")
                 registerBroadcastReceiver()
                 isListening = true
-                setupTimeout()
                 Log.d(TAG, "SMS listener is now active and waiting for SMS...")
             }
 
@@ -262,51 +240,11 @@ class SMSRetrieverModule(reactContext: ReactApplicationContext) : NativeSmsRetri
     }
 
     // Implement the abstract method from the generated spec
-    override fun startSMSListenerWithPromise(timeoutMs: Double?, promise: Promise) {
-        val timeout = timeoutMs?.toLong() ?: DEFAULT_TIMEOUT_MS
-
-        if (isListening) {
-            Log.w(TAG, "SMS listener is already active")
-            promise.reject("ALREADY_LISTENING", "SMS listener is already active")
-            return
-        }
-
-        currentPromise = promise
-        retryCount = 0
-
-        Log.d(TAG, "Starting SMS listener with promise support...")
-
-        try {
-            val client: SmsRetrieverClient = SmsRetriever.getClient(reactApplicationContext)
-            val task = client.startSmsRetriever()
-
-            task.addOnSuccessListener {
-                Log.d(TAG, "SMS Retriever started successfully")
-                registerBroadcastReceiver()
-                isListening = true
-                setupTimeout(timeout)
-                Log.d(TAG, "SMS listener is now active and waiting for SMS...")
-            }
-
-            task.addOnFailureListener { exception ->
-                Log.e(TAG, "Failed to start SMS Retriever: ${exception.message}", exception)
-                promise.reject("START_FAILED", "Failed to start SMS Retriever: ${exception.message}")
-                currentPromise = null
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Exception starting SMS listener", e)
-            promise.reject("EXCEPTION", "Exception starting SMS listener: ${e.message}")
-            currentPromise = null
-        }
-    }
-
-    // Implement the abstract method from the generated spec
     override fun getStatus(promise: Promise) {
         try {
             val statusMap = Arguments.createMap().apply {
                 putBoolean("isListening", isListening)
                 putBoolean("isRegistered", isRegistered)
-                putInt("retryCount", retryCount)
             }
             promise.resolve(statusMap)
         } catch (e: Exception) {

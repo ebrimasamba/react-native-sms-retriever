@@ -32,10 +32,8 @@ export interface UseSMSRetrieverReturn {
   status: SMSStatus | null;
 
   // Actions
-  startListening: () => Promise<string>;
+  startListening: () => Promise<void>;
   stopListening: () => void;
-  refreshStatus: () => Promise<void>;
-  clearError: () => void;
   reset: () => void;
 
   // Utilities
@@ -50,7 +48,7 @@ export interface UseSMSRetrieverReturn {
 export const useSMSRetriever = (
   options: UseSMSRetrieverOptions = {}
 ): UseSMSRetrieverReturn => {
-  const { timeoutMs = 30000, autoStart = true, onSuccess, onError } = options;
+  const { onSuccess, onError } = options;
 
   // State
   const [appHash, setAppHash] = useState<string>('');
@@ -91,11 +89,6 @@ export const useSMSRetriever = (
       // Get initial status
       const currentStatus = await NativeSMSRetriever.getStatus();
       setStatus(currentStatus);
-
-      console.log('SMS Retriever initialized:', {
-        hash,
-        status: currentStatus,
-      });
     } catch (initError) {
       console.error('Failed to initialize SMS Retriever:', initError);
       setError(`Initialization failed: ${initError}`);
@@ -106,32 +99,22 @@ export const useSMSRetriever = (
   }, [isAndroid]);
 
   // Start SMS listening
-  const startListening = useCallback(async (): Promise<string> => {
+  const startListening = useCallback(async (): Promise<void> => {
     try {
       setError(null);
       setIsListening(true);
 
       // Check if running on Android and module is available
-      if (!isAndroid || !NativeSMSRetriever) {
-        throw new Error('SMS Retriever is only supported on Android');
-      }
+      if (!isAndroid || !NativeSMSRetriever) return;
 
-      const otp =
-        await NativeSMSRetriever.startSMSListenerWithPromise(timeoutMs);
-      setSmsCode(otp);
-      setIsListening(false);
-
-      // Call success callback if provided
-      onSuccess?.(otp);
-
-      return otp;
+      NativeSMSRetriever.startSMSListener();
     } catch (startError) {
       console.error('Failed to start SMS listener:', startError);
       setError(`SMS retrieval failed: ${startError}`);
       setIsListening(false);
       throw startError;
     }
-  }, [timeoutMs, onSuccess, isAndroid]);
+  }, [isAndroid]);
 
   // Stop SMS listening
   const stopListening = useCallback(() => {
@@ -142,30 +125,11 @@ export const useSMSRetriever = (
       }
       setIsListening(false);
       setError(null);
-      console.log('SMS listener stopped');
     } catch (stopError) {
       console.error('Failed to stop SMS listener:', stopError);
       setError(`Failed to stop listener: ${stopError}`);
     }
   }, [isAndroid]);
-
-  // Refresh status
-  const refreshStatus = useCallback(async () => {
-    try {
-      // Only call native method on Android if module is available
-      if (isAndroid && NativeSMSRetriever) {
-        const currentStatus = await NativeSMSRetriever.getStatus();
-        setStatus(currentStatus);
-      }
-    } catch (statusError) {
-      console.error('Failed to get status:', statusError);
-    }
-  }, [isAndroid]);
-
-  // Clear error
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
 
   // Reset all state
   const reset = useCallback(() => {
@@ -186,7 +150,6 @@ export const useSMSRetriever = (
         setIsListening(false);
         setError(null);
         onSuccess?.(otp);
-        console.log('SMS Code received via event:', otp);
       }
     );
 
@@ -217,11 +180,11 @@ export const useSMSRetriever = (
   }, [initialize, stopListening]);
 
   // Auto-start if enabled
-  useEffect(() => {
-    if (autoStart && isInitialized.current && !isListening && !error) {
-      startListening().catch(console.error);
-    }
-  }, [autoStart, isListening, error, startListening]);
+  // useEffect(() => {
+  //   if (autoStart && isInitialized.current && !isListening && !error) {
+  //     startListening().catch(console.error);
+  //   }
+  // }, [autoStart, isListening, error, startListening]);
 
   // Computed values
   const isReady = isInitialized.current && !isLoading && !error;
@@ -239,8 +202,6 @@ export const useSMSRetriever = (
     // Actions
     startListening,
     stopListening,
-    refreshStatus,
-    clearError,
     reset,
 
     // Utilities

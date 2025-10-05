@@ -20,7 +20,6 @@ export default function App() {
     isReady,
     startListening,
     stopListening,
-    clearError,
     reset,
   } = useSMSRetriever({
     timeoutMs: 30000,
@@ -35,7 +34,6 @@ export default function App() {
 
   const handleStartListening = async () => {
     try {
-      clearError();
       setOtp('');
       await startListening();
     } catch (err) {

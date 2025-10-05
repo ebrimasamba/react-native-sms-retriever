@@ -20,7 +20,6 @@ export interface SMSStatus {
 
 export interface Spec extends TurboModule {
   startSMSListener(): void;
-  startSMSListenerWithPromise(timeoutMs?: number): Promise<string>;
   readonly onSMSRetrieved: CodegenTypes.EventEmitter<string>;
   readonly onSMSError: CodegenTypes.EventEmitter<SMSError>;
   stopSMSListener(): void;

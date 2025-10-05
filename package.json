@@ -1,6 +1,6 @@
 {
   "name": "@ebrimasamba/react-native-sms-retriever",
-  "version": "1.0.2-beta.5",
+  "version": "1.0.2-beta.6",
   "description": "A react native android sms retriever api library for the new architecture",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
@@ -33,7 +33,7 @@
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "clean": "del-cli android/build example/android/build example/android/app/build lib",
-    "build": "tsc src/index.ts --outDir lib/module --declaration --declarationDir lib/typescript/src --target ES2020 --module commonjs --moduleResolution node --esModuleInterop --allowSyntheticDefaultImports --jsx react-jsx --skipLibCheck",
+    "build": "tsc src/*.ts --outDir lib/module --declaration --declarationDir lib/typescript/src --target ES2020 --module commonjs --moduleResolution node --esModuleInterop --allowSyntheticDefaultImports --jsx react-jsx --skipLibCheck",
     "release": "release-it --only-version"
   },
   "keywords": [

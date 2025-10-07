@@ -297,6 +297,14 @@ interface SMSStatus {
 
 MIT
 
+## Author
+
+**Ebrima Samba**
+
+🔍 Currently seeking remote employment opportunities
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/ebrima-samba-4923a7169/)
+
 ---
 
 Made with [create-react-native-library](https://github.com/callstack/react-native-builder-bob)

@@ -9,7 +9,6 @@ export interface SMSError {
     | 'INVALID_SMS_FORMAT'
     | 'UNKNOWN_ERROR';
   message: string;
-  retryCount: number;
 }
 
 export interface SMSStatus {

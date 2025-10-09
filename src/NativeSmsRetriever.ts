@@ -21,8 +21,8 @@ export interface SMSStatus {
 
 export interface Spec extends TurboModule {
   startSMSListener(): void;
-  readonly onSMSRetrieved: EventEmitter;
-  readonly onSMSError: EventEmitter;
+  readonly onSMSRetrieved: EventEmitter<string>;
+  readonly onSMSError: EventEmitter<SMSError>;
   stopSMSListener(): void;
   getAppHash(): Promise<string>;
   getStatus(): Promise<SMSStatus>;

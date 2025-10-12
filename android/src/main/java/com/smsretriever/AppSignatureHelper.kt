@@ -26,7 +26,7 @@ class AppSignatureHelper(private val context: ReactApplicationContext) {
                 PackageManager.GET_SIGNATURES
             ).signatures
 
-          
+
 
             for (signature in signatures!!) {
                 val hash = hash(packageName, signature.toCharsString())

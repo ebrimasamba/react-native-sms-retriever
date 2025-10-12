@@ -1,22 +1,35 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import type { EventSubscription } from 'react-native';
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform, DeviceEventEmitter } from 'react-native';
 import type { SMSError, SMSStatus } from './types';
 
-// Conditional import to prevent crashes on iOS
+// Lazy load and cache the native module
 let NativeSMSRetriever: any = null;
-const isTurboModuleEnabled = (global as any).__turboModuleProxy != null;
+let moduleLoadAttempted = false;
 
-if (Platform.OS === 'android') {
+const loadNativeModule = () => {
+  if (moduleLoadAttempted) return NativeSMSRetriever;
+
+  moduleLoadAttempted = true;
+
+  if (Platform.OS !== 'android') {
+    console.warn('SMS Retriever is only supported on Android');
+    return null;
+  }
+
   try {
+    const isTurboModuleEnabled = (global as any).__turboModuleProxy != null;
     const module = isTurboModuleEnabled
-      ? require('./NativeSMSRetriever').default
+      ? require('./NativeSmsRetriever').default
       : NativeModules.SMSRetriever;
     NativeSMSRetriever = module;
   } catch (error) {
     console.warn('Failed to load SMS Retriever module:', error);
+    NativeSMSRetriever = null;
   }
-}
+
+  return NativeSMSRetriever;
+};
 
 export interface UseSMSRetrieverOptions {
   onSuccess?: (otp: string) => void;
@@ -42,10 +55,6 @@ export interface UseSMSRetrieverReturn {
   hasError: boolean;
 }
 
-/**
- * Custom hook for SMS Retriever functionality
- * Provides a clean, React-friendly interface to the SMS Retriever TurboModule
- */
 export const useSMSRetriever = (
   options: UseSMSRetrieverOptions = {}
 ): UseSMSRetrieverReturn => {
@@ -58,25 +67,36 @@ export const useSMSRetriever = (
   const [isListening, setIsListening] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<SMSStatus | null>(null);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
-  // Refs for cleanup
+  // Refs for cleanup and tracking
   const smsSubscription = useRef<EventSubscription | null>(null);
   const errorSubscription = useRef<EventSubscription | null>(null);
-  const isInitialized = useRef<boolean>(false);
+  const cleanupRef = useRef<boolean>(false);
+  const callbacksRef = useRef({ onSuccess, onError });
 
-  // Platform check - SMS Retriever is Android-only
+  // Update callbacks ref
+  useEffect(() => {
+    callbacksRef.current = { onSuccess, onError };
+  }, [onSuccess, onError]);
+
+  // Platform check
   const isAndroid = Platform.OS === 'android';
 
   // Start SMS listening
   const startListening = useCallback(async (): Promise<void> => {
+    if (cleanupRef.current) return;
+
     try {
       setError(null);
       setIsListening(true);
 
-      // Check if running on Android and module is available
-      if (!isAndroid || !NativeSMSRetriever) return;
+      if (!isAndroid) return;
 
-      NativeSMSRetriever.startSMSListener();
+      const module = loadNativeModule();
+      if (!module) return;
+
+      await module.startSMSListener();
     } catch (startError) {
       console.error('Failed to start SMS listener:', startError);
       setError(`SMS retrieval failed: ${startError}`);
@@ -88,9 +108,11 @@ export const useSMSRetriever = (
   // Stop SMS listening
   const stopListening = useCallback(() => {
     try {
-      // Only call native method on Android if module is available
-      if (isAndroid && NativeSMSRetriever) {
-        NativeSMSRetriever.stopSMSListener();
+      if (!isAndroid) return;
+
+      const module = loadNativeModule();
+      if (module) {
+        module.stopSMSListener?.();
       }
       setIsListening(false);
       setError(null);
@@ -102,33 +124,42 @@ export const useSMSRetriever = (
 
   // Initialize the SMS Retriever
   const initialize = useCallback(async () => {
-    if (isInitialized.current) return;
+    if (cleanupRef.current) return;
 
     try {
       setIsLoading(true);
       setError(null);
 
-      // Check if running on Android and module is available
-      if (!isAndroid || !NativeSMSRetriever) {
+      if (!isAndroid) {
         setError('SMS Retriever is only supported on Android');
         setIsLoading(false);
-        isInitialized.current = true;
+        setIsInitialized(true);
+        return;
+      }
+
+      const module = loadNativeModule();
+      if (!module) {
+        setError('SMS Retriever module not available');
+        setIsLoading(false);
+        setIsInitialized(true);
         return;
       }
 
       // Get app hash
-      const hash = await NativeSMSRetriever.getAppHash();
+      const hash = await module.getAppHash();
       setAppHash(hash);
 
       // Get initial status
-      const currentStatus = await NativeSMSRetriever.getStatus();
+      const currentStatus = await module.getStatus?.();
       setStatus(currentStatus);
+
+      setIsInitialized(true);
     } catch (initError) {
       console.error('Failed to initialize SMS Retriever:', initError);
       setError(`Initialization failed: ${initError}`);
+      setIsInitialized(true);
     } finally {
       setIsLoading(false);
-      isInitialized.current = true;
     }
   }, [isAndroid]);
 
@@ -142,78 +173,92 @@ export const useSMSRetriever = (
 
   // Setup event listeners
   useEffect(() => {
-    if (!isInitialized.current || !isAndroid || !NativeSMSRetriever) return;
+    if (!isInitialized || !isAndroid) return;
 
-    // Listen for successful SMS retrieval
-    smsSubscription.current = NativeSMSRetriever.onSMSRetrieved(
-      (otp: string) => {
-        console.log('OTP received:', otp);
-        setSmsCode(otp);
-        setIsListening(false);
-        setError(null);
-        onSuccess?.(otp);
-      }
-    );
+    const module = loadNativeModule();
+    if (!module) return;
 
-    // Listen for errors
-    errorSubscription.current = NativeSMSRetriever.onSMSError(
-      (smsError: SMSError) => {
-        const errorMessage = `${smsError.type}: ${smsError.message}`;
-        setError(errorMessage);
-        setIsListening(false);
-        onError?.(smsError);
-        console.error('SMS Error:', smsError);
-      }
-    );
+    const isTurboModuleEnabled = (global as any).__turboModuleProxy != null;
+
+    const handleSMSRetrieved = (otp: string) => {
+      if (cleanupRef.current) return;
+      console.log('OTP received:', otp);
+      setSmsCode(otp);
+      setIsListening(false);
+      setError(null);
+      callbacksRef.current.onSuccess?.(otp);
+    };
+
+    const handleSMSError = (smsError: SMSError) => {
+      if (cleanupRef.current) return;
+      const errorMessage = `${smsError.type}: ${smsError.message}`;
+      setError(errorMessage);
+      setIsListening(false);
+      callbacksRef.current.onError?.(smsError);
+      console.error('SMS Error:', smsError);
+    };
+
+    if (isTurboModuleEnabled) {
+      // New Architecture
+      smsSubscription.current = module.onSMSRetrieved?.(handleSMSRetrieved);
+      errorSubscription.current = module.onSMSError?.(handleSMSError);
+    } else {
+      // Old Architecture
+      smsSubscription.current = DeviceEventEmitter.addListener(
+        'onSMSRetrieved',
+        handleSMSRetrieved
+      );
+      errorSubscription.current = DeviceEventEmitter.addListener(
+        'onSMSError',
+        handleSMSError
+      );
+    }
 
     return () => {
-      smsSubscription.current?.remove();
-      errorSubscription.current?.remove();
+      smsSubscription.current?.remove?.();
+      errorSubscription.current?.remove?.();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onSuccess, onError, isAndroid, isInitialized.current]);
+  }, [isInitialized, isAndroid]);
 
   // Initialize on mount
   useEffect(() => {
+    cleanupRef.current = false;
     initialize();
+
+    return () => {
+      cleanupRef.current = true;
+      stopListening();
+      smsSubscription.current?.remove?.();
+      errorSubscription.current?.remove?.();
+    };
   }, [initialize, stopListening]);
 
+  // Auto-start listening when initialized
   useEffect(() => {
-    if (isInitialized.current && !isListening && !error) {
+    if (isInitialized && !isListening && !error && !cleanupRef.current) {
       startListening().catch(console.error);
     }
-    return () => {
-      stopListening();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInitialized.current]);
+  }, [isInitialized, isListening, error, startListening]);
 
   // Computed values
-  const isReady = isInitialized.current && !isLoading && !error;
+  const isReady = isInitialized && !isLoading && !error;
   const hasError = error !== null;
 
   return {
-    // State
     appHash,
     smsCode,
     isLoading,
     isListening,
     error,
     status,
-
-    // Actions
     startListening,
     stopListening,
     reset,
-
-    // Utilities
     isReady,
     hasError,
   };
 };
 
 export default useSMSRetriever;
-
 export { NativeSMSRetriever };
-// Export types for external use
 export type { SMSError, SMSStatus } from './types';

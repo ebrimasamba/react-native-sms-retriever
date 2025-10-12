@@ -4,13 +4,14 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class SMSRetrieverModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
-    private val smsRetrieverModuleImpl = SMSRetrieverModuleImpl(reactContext)
+    private val smsRetrieverModuleImpl = SmsRetrieverModuleImpl(reactContext)
 
     override fun getName(): String {
-        return SMSRetrieverModuleImpl.NAME
+        return SmsRetrieverModuleImpl.NAME
     }
 
     @ReactMethod
@@ -26,11 +27,6 @@ class SMSRetrieverModule(reactContext: ReactApplicationContext) : ReactContextBa
     @ReactMethod
     fun getAppHash(promise: Promise) {
         smsRetrieverModuleImpl.getAppHash(promise)
-    }
-
-    @ReactMethod
-    fun startSMSListenerWithPromise(timeoutMs: Double?, promise: Promise) {
-        smsRetrieverModuleImpl.startSMSListenerWithPromise(timeoutMs, promise)
     }
 
     @ReactMethod

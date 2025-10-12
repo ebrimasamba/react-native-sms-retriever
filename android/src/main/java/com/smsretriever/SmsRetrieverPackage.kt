@@ -9,23 +9,21 @@ import com.facebook.react.module.model.ReactModuleInfoProvider
 class SMSRetrieverPackage : BaseReactPackage() {
 
   override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =
-    if (name == SmsRetrieverModuleImpl.NAME) {
+    (if (name == SmsRetrieverModuleImpl.NAME) {
       SMSRetrieverModule(reactContext)
     } else {
       null
-    }
+    })
 
-  override fun getReactModuleInfoProvider() = ReactModuleInfoProvider {
-    val isTurboModule: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
-
-    mapOf(
+  override fun getReactModuleInfoProvider() = ReactModuleInfoProvider { mapOf(
       SmsRetrieverModuleImpl.NAME to ReactModuleInfo(
         name = SmsRetrieverModuleImpl.NAME,
         className = SmsRetrieverModuleImpl.NAME,
         canOverrideExistingModule = false,
         needsEagerInit = false,
+        hasConstants = false,
         isCxxModule = false,
-        isTurboModule = isTurboModule
+        isTurboModule = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
       )
     )
   }

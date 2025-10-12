@@ -21,10 +21,12 @@ class AppSignatureHelper(private val context: ReactApplicationContext) {
         try {
             val packageName = context.packageName
             val packageManager = context.packageManager
-            val signatures = packageManager.getPackageInfo(
+            @Suppress("DEPRECATION") val signatures = packageManager.getPackageInfo(
                 packageName,
                 PackageManager.GET_SIGNATURES
             ).signatures
+
+          
 
             for (signature in signatures!!) {
                 val hash = hash(packageName, signature.toCharsString())

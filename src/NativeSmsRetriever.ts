@@ -1,7 +1,5 @@
 import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
-//@ts-ignore
-import type { EventEmitter } from 'react-native/Libraries/Types/CodegenTypes';
 
 export interface SMSError {
   type:
@@ -21,8 +19,6 @@ export interface SMSStatus {
 
 export interface Spec extends TurboModule {
   startSMSListener(): void;
-  readonly onSMSRetrieved: EventEmitter<string>;
-  readonly onSMSError: EventEmitter<SMSError>;
   stopSMSListener(): void;
   getAppHash(): Promise<string>;
   getStatus(): Promise<SMSStatus>;

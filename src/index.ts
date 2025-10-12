@@ -1,15 +1,18 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import type { EventSubscription } from 'react-native';
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import type { SMSError, SMSStatus } from './types';
 
 // Conditional import to prevent crashes on iOS
 let NativeSMSRetriever: any = null;
+const isTurboModuleEnabled = (global as any).__turboModuleProxy != null;
 
 if (Platform.OS === 'android') {
   try {
-    const module = require('./NativeSmsRetriever');
-    NativeSMSRetriever = module.default;
+    const module = isTurboModuleEnabled
+      ? require('./NativeSMSRetriever').default
+      : NativeModules.SMSRetriever;
+    NativeSMSRetriever = module;
   } catch (error) {
     console.warn('Failed to load SMS Retriever module:', error);
   }

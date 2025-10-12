@@ -1,16 +1,14 @@
 # @ebrimasamba/react-native-sms-retriever
 
-A React Native library for Android SMS Retriever API with support for the new architecture (TurboModules). This library allows you to automatically retrieve SMS messages containing OTP codes without requiring SMS permissions.
+A React Native library for Android SMS Retriever API with support for both new architecture (TurboModules) and old architecture (Bridge). This library allows you to automatically retrieve SMS messages containing OTP codes without requiring SMS permissions.
 
 [![npm version](https://badge.fury.io/js/%40ebrimasamba%2Freact-native-sms-retriever.svg)](https://badge.fury.io/js/%40ebrimasamba%2Freact-native-sms-retriever)
 [![npm downloads](https://img.shields.io/npm/dm/@ebrimasamba/react-native-sms-retriever.svg)](https://www.npmjs.com/package/@ebrimasamba/react-native-sms-retriever)
 
-> **Current Version:** 2.0.0
-
 ## Features
 
 - ✅ **Android SMS Retriever API** - Automatically retrieve SMS messages
-- ✅ **New Architecture Support** - Built with TurboModules (React Native 0.68+)
+- ✅ **Backward Compatible** - Supports both new architecture (TurboModules) and old architecture (Bridge)
 - ✅ **TypeScript Support** - Full TypeScript definitions included
 - ✅ **React Hook** - Easy-to-use `useSMSRetriever` hook with automatic state management
 - ✅ **Expo Compatible** - Works with Expo managed workflow and development builds
@@ -30,7 +28,7 @@ yarn add @ebrimasamba/react-native-sms-retriever
 
 ### React Native Setup
 
-The library uses autolinking, so no additional setup is required for React Native 0.68+.
+The library uses autolinking, so no additional setup is required for React Native 0.60+. The library automatically detects and uses the appropriate architecture (new or old) based on your React Native version.
 
 ### Expo Setup
 
@@ -266,7 +264,7 @@ interface SMSStatus {
 
 ## Requirements
 
-- React Native 0.68+ (New Architecture with TurboModules)
+- React Native 0.60+ (supports both new architecture with TurboModules and old architecture with Bridge)
 - Android API level 19+ (Android 4.4+)
 - Google Play Services (for SMS Retriever API)
 - Expo SDK 48+ (for Expo compatibility)
@@ -278,7 +276,7 @@ interface SMSStatus {
 1. **SMS not detected**: Ensure your SMS contains the app hash at the end
 2. **Timeout errors**: Increase the timeout or check if Google Play Services is available
 3. **Permission errors**: SMS Retriever API doesn't require SMS permissions
-4. **Build errors**: Make sure you're using React Native 0.68+ with autolinking
+4. **Build errors**: Make sure you're using React Native 0.60+ with autolinking
 
 ### Debug Tips
 

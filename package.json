@@ -33,6 +33,7 @@
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "clean": "del-cli android/build example/android/build example/android/app/build lib",
+    "prepare": "bob build",
     "build": "tsc src/*.ts --outDir lib/module --declaration --declarationDir lib/typescript/src --target ES2020 --module commonjs --moduleResolution node --esModuleInterop --allowSyntheticDefaultImports --jsx react-jsx --skipLibCheck",
     "release": "release-it --only-version"
   },

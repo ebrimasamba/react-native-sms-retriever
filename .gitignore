@@ -55,6 +55,12 @@ npm-debug.log
 yarn-debug.log
 yarn-error.log
 
+# Packed tarballs
+*.tgz
+
+# Claude Code local state
+.claude/
+
 # BUCK
 buck-out/
 \.buckd/

@@ -1,3 +1,5 @@
+![react-native-sms-retriever](./rnsms.png)
+
 # @ebrimasamba/react-native-sms-retriever
 
 A React Native library for Android SMS Retriever API with support for both new architecture (TurboModules) and old architecture (Bridge). This library allows you to automatically retrieve SMS messages containing OTP codes without requiring SMS permissions.

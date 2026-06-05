@@ -118,6 +118,7 @@ class SmsRetrieverModuleImpl(private val reactContext: ReactApplicationContext) 
 
   private fun handleSuccess(otp: String) {
     Log.d(TAG, "SMS retrieval successful: $otp")
+
     cleanup()
       reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
       .emit("onSMSRetrieved", otp)
@@ -140,10 +141,28 @@ class SmsRetrieverModuleImpl(private val reactContext: ReactApplicationContext) 
 
     currentPromise?.reject(errorType.name, message)
     currentPromise = null
+
+    // start a fresh SMS Retriever "window" so that the next SMS can still be received.
+    if (errorType == SMSErrorType.INVALID_SMS_FORMAT) {
+      startSMSListener()
+    }
   }
 
   private fun cleanup() {
     isListening = false
+
+    if (isRegistered) {
+      try {
+        reactContext.unregisterReceiver(smsBroadcastReceiver)
+        Log.d(TAG, "SMS BroadcastReceiver unregistered successfully (cleanup)")
+      } catch (e: IllegalArgumentException) {
+        Log.w(TAG, "SMS BroadcastReceiver was not registered during cleanup: ${e.message}")
+      } catch (e: Exception) {
+        Log.e(TAG, "Error unregistering SMS BroadcastReceiver during cleanup", e)
+      } finally {
+        isRegistered = false
+      }
+    }
   }
 
 
@@ -207,22 +226,9 @@ class SmsRetrieverModuleImpl(private val reactContext: ReactApplicationContext) 
   }
 
    fun stopSMSListener() {
-    Log.d(TAG, "Stopping SMS listener...")
-
-    try {
-      if (isRegistered) {
-        reactContext.unregisterReceiver(smsBroadcastReceiver)
-        isRegistered = false
-        Log.d(TAG, "SMS BroadcastReceiver unregistered successfully")
-      }
-    } catch (e: IllegalArgumentException) {
-      Log.w(TAG, "SMS BroadcastReceiver was not registered: ${e.message}")
-    } catch (e: Exception) {
-      Log.e(TAG, "Error unregistering SMS BroadcastReceiver", e)
-    } finally {
-      cleanup()
-      Log.d(TAG, "SMS listener stopped")
-    }
+     Log.d(TAG, "Stopping SMS listener...")
+     cleanup()
+     Log.d(TAG, "SMS listener stopped")
   }
 
 

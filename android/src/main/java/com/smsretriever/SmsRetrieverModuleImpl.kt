@@ -199,23 +199,17 @@ class SmsRetrieverModuleImpl(private val reactContext: ReactApplicationContext) 
     if (!isRegistered) {
       try {
         val intentFilter = IntentFilter(SmsRetriever.SMS_RETRIEVED_ACTION)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-          // Android 13+ (API 33) — new overload that requires flags
-          ContextCompat.registerReceiver(
-            reactContext,
-            smsBroadcastReceiver,
-            intentFilter,
-            ContextCompat.RECEIVER_EXPORTED
-          )
-        } else {
-          // For Android 12 and below
-          ContextCompat.registerReceiver(
-            reactContext,
-            smsBroadcastReceiver,
-            intentFilter,
-            ContextCompat.RECEIVER_NOT_EXPORTED
-          )
-        }
+        // SMS_RETRIEVED_ACTION is broadcast by Google Play Services (a separate
+        // process) and is protected by SmsRetriever.SEND_PERMISSION, so the
+        // receiver must be EXPORTED on every API level. Registering it as
+        // NOT_EXPORTED on Android <13 caused Play Services' broadcast to be
+        // permission-denied, so the receiver never fired and no OTP arrived.
+        ContextCompat.registerReceiver(
+          reactContext,
+          smsBroadcastReceiver,
+          intentFilter,
+          ContextCompat.RECEIVER_EXPORTED
+        )
         isRegistered = true
         Log.d(TAG, "SMS BroadcastReceiver registered successfully")
       } catch (e: Exception) {

@@ -178,8 +178,6 @@ export const useSMSRetriever = (
     const module = loadNativeModule();
     if (!module) return;
 
-    const isTurboModuleEnabled = (global as any).__turboModuleProxy != null;
-
     const handleSMSRetrieved = (otp: string) => {
       if (cleanupRef.current) return;
       console.log('OTP received:', otp);
@@ -198,21 +196,19 @@ export const useSMSRetriever = (
       console.error('SMS Error:', smsError);
     };
 
-    if (isTurboModuleEnabled) {
-      // New Architecture
-      smsSubscription.current = module.onSMSRetrieved?.(handleSMSRetrieved);
-      errorSubscription.current = module.onSMSError?.(handleSMSError);
-    } else {
-      // Old Architecture
-      smsSubscription.current = DeviceEventEmitter.addListener(
-        'onSMSRetrieved',
-        handleSMSRetrieved
-      );
-      errorSubscription.current = DeviceEventEmitter.addListener(
-        'onSMSError',
-        handleSMSError
-      );
-    }
+    // The native module emits events via RCTDeviceEventEmitter on both the old
+    // and new architecture, so JS must always subscribe through
+    // DeviceEventEmitter. (The native TurboModule does not expose
+    // onSMSRetrieved/onSMSError methods, so the previous new-arch path was a
+    // silent no-op and the OTP never reached JS.)
+    smsSubscription.current = DeviceEventEmitter.addListener(
+      'onSMSRetrieved',
+      handleSMSRetrieved
+    );
+    errorSubscription.current = DeviceEventEmitter.addListener(
+      'onSMSError',
+      handleSMSError
+    );
 
     return () => {
       smsSubscription.current?.remove?.();
